@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Estudantes — Estágio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0e0e10;
+      --surface: #18181b;
+      --border: #2a2a2e;
+      --accent: #b5ff4d;
+      --accent-dim: rgba(181,255,77,0.12);
+      --text: #e8e8e8;
+      --muted: #666;
+      --danger: #ff5b5b;
+      --mono: 'DM Mono', monospace;
+      --display: 'Syne', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      min-height: 100vh;
+      padding: 48px 24px;
+    }
+
+    header {
+      max-width: 860px;
+      margin: 0 auto 48px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .logo-block h1 {
+      font-family: var(--display);
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      color: #fff;
+    }
+    .logo-block h1 span { color: var(--accent); }
+
+    .logo-block p {
+      margin-top: 6px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* ── Add student form ── */
+    .add-form {
+      max-width: 860px;
+      margin: 0 auto 32px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 24px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 160px; }
+
+    label {
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      padding: 9px 12px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus { border-color: var(--accent); }
+
+    .btn-add {
+      background: var(--accent);
+      color: #0e0e10;
+      border: none;
+      border-radius: 6px;
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 10px 22px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.15s, transform 0.1s;
+      align-self: flex-end;
+    }
+    .btn-add:hover { opacity: 0.88; }
+    .btn-add:active { transform: scale(0.97); }
+    .btn-add:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 18px;
+      font-size: 0.8rem;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.25s, transform 0.25s;
+      pointer-events: none;
+      z-index: 99;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+    #toast.success { border-color: var(--accent); color: var(--accent); }
+    #toast.error { border-color: var(--danger); color: var(--danger); }
+
+    /* ── Table wrapper ── */
+    .table-wrap {
+      max-width: 860px;
+      margin: 0 auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .table-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .table-title {
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    #student-count {
+      font-size: 0.7rem;
+      letter-spacing: 0.06em;
+      background: var(--accent-dim);
+      color: var(--accent);
+      padding: 3px 10px;
+      border-radius: 99px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      text-align: left;
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 10px 24px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 400;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.03); }
+
+    tbody td {
+      padding: 14px 24px;
+      font-size: 0.85rem;
+    }
+
+    td.id-col { color: var(--muted); width: 60px; }
+
+    td.course-col {
+      color: var(--accent);
+      font-size: 0.78rem;
+    }
+
+    /* ── States ── */
+    .state-row td {
+      padding: 40px 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Fade in rows ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    tbody tr.loaded {
+      animation: fadeUp 0.25s ease both;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-block">
+    <h1>students<span>.</span></h1>
+    <p>API Estágio — Painel de Estudantes</p>
+  </div>
+</header>
+
+<!-- Missão 2: formulário para adicionar estudante -->
+<div class="add-form">
+  <div class="field">
+    <label for="inp-name">Nome</label>
+    <input id="inp-name" type="text" placeholder="Ex: João Silva" />
+  </div>
+  <div class="field">
+    <label for="inp-course">Curso</label>
+    <input id="inp-course" type="text" placeholder="Ex: Sistemas de Informação" />
+  </div>
+  <button class="btn-add" id="btn-add" onclick="addStudent()">+ Adicionar</button>
+</div>
+
+<!-- Missão 1 / 3: tabela de estudantes -->
+<div class="table-wrap">
+  <div class="table-header">
+    <span class="table-title">Lista de Estudantes</span>
+    <span id="student-count">— alunos</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Nome</th>
+        <th>Curso</th>
+      </tr>
+    </thead>
+    <tbody id="tbody">
+      <tr class="state-row">
+        <td colspan="3"><span class="spinner"></span> Carregando...</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const API = 'http://localhost:3009'
+
+  // ── Carrega estudantes da API ──
+  async function loadStudents() {
+    const tbody = document.getElementById('tbody')
+    try {
+      const res = await fetch(`${API}/students`)
+      if (!res.ok) throw new Error('Erro na resposta da API')
+      const students = await res.json()
+
+      document.getElementById('student-count').textContent =
+        students.length === 1 ? '1 aluno' : `${students.length} alunos`
+
+      if (students.length === 0) {
+        tbody.innerHTML = `<tr class="state-row"><td colspan="3">Nenhum estudante cadastrado.</td></tr>`
+        return
+      }
+
+      tbody.innerHTML = students.map((s, i) => `
+        <tr class="loaded" style="animation-delay:${i * 40}ms">
+          <td class="id-col">${s.id}</td>
+          <td>${s.name}</td>
+          <td class="course-col">${s.course}</td>
+        </tr>
+      `).join('')
+    } catch (err) {
+      tbody.innerHTML = `<tr class="state-row"><td colspan="3">⚠ Não foi possível conectar à API. Verifique se o servidor está rodando em <strong>localhost:3009</strong>.</td></tr>`
+      console.error(err)
+    }
+  }
+
+  // ── Adiciona novo estudante ──
+  async function addStudent() {
+    const nameEl = document.getElementById('inp-name')
+    const courseEl = document.getElementById('inp-course')
+    const btn = document.getElementById('btn-add')
+
+    const name = nameEl.value.trim()
+    const course = courseEl.value.trim()
+
+    if (!name || !course) {
+      showToast('Preencha nome e curso.', 'error')
+      return
+    }
+
+    btn.disabled = true
+    btn.textContent = 'Salvando...'
+
+    try {
+      const res = await fetch(`${API}/students`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, course })
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Erro ao salvar.')
+      }
+
+      nameEl.value = ''
+      courseEl.value = ''
+      showToast('Estudante adicionado!', 'success')
+      await loadStudents()
+    } catch (err) {
+      showToast(err.message, 'error')
+    } finally {
+      btn.disabled = false
+      btn.textContent = '+ Adicionar'
+    }
+  }
+
+  // ── Toast ──
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast')
+    t.textContent = msg
+    t.className = `show ${type}`
+    clearTimeout(t._timer)
+    t._timer = setTimeout(() => { t.className = '' }, 3000)
+  }
+
+  // Enter nos inputs também envia
+  document.getElementById('inp-name').addEventListener('keydown', e => e.key === 'Enter' && addStudent())
+  document.getElementById('inp-course').addEventListener('keydown', e => e.key === 'Enter' && addStudent())
+
+  loadStudents()
+</script>
+</body>
+</html>
