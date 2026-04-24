@@ -8,6 +8,8 @@ Seu objetivo é executar o projeto localmente e realizar as alterações solicit
 
 - Node.js
 - Express
+- sql.js (SQLite em JavaScript puro)
+- cors
 
 ## Como rodar localmente
 
@@ -26,8 +28,11 @@ node app.js
 Se estiver tudo certo, o terminal deve mostrar:
 
 ```bash
+Dados iniciais inseridos no banco.
 Example app listening on port 3009
 ```
+
+> Na segunda vez que rodar, a mensagem "Dados iniciais inseridos" não aparece — os dados já estão salvos no arquivo `students.db`.
 
 ## URL local da API
 
@@ -37,21 +42,39 @@ Servidor local:
 http://localhost:3009
 ```
 
-Exemplo de rota disponível:
+Rotas disponíveis:
 
 ```text
-GET http://localhost:3009/students
+GET  http://localhost:3009/students
+POST http://localhost:3009/students
 ```
 
 ## Como testar no Insomnia ou Postman
 
-Com o servidor rodando, crie uma requisição do tipo `GET` para:
+**Listar estudantes:**
+
+Crie uma requisição do tipo `GET` para:
 
 ```text
 http://localhost:3009/students
 ```
 
-Envie a requisição e verifique se a API retorna a lista em JSON.
+**Adicionar estudante:**
+
+Crie uma requisição do tipo `POST` para:
+
+```text
+http://localhost:3009/students
+```
+
+Com o body em JSON:
+
+```json
+{
+  "name": "João Silva",
+  "course": "Ciência da Computação"
+}
+```
 
 ## Onde alterar ou criar novas funções
 
@@ -67,6 +90,8 @@ app.get('/nova-rota', (req, res) => {
 })
 ```
 
+---
+
 ## Missões
 
 ### Instruções Iniciais
@@ -79,50 +104,91 @@ Se você criar um projeto separado para o frontend, ele também deve estar no Gi
 Você pode utilizar IA para desenvolvimento, desde que consiga entender e explicar o código criado.
 
 
-### Missão 1
+### Missão 1 ✅
 
 A rota de estudantes atualmente retorna dados mockados no código.
 
 Sua missão é alterar essa funcionalidade para ler os estudantes de um banco SQLite.
 
+**O que foi feito:**
 
-### Missão 2
+A rota `GET /students` foi alterada para ler os dados de um banco SQLite, utilizando a biblioteca `sql.js` (SQLite puro em JavaScript, sem necessidade de compilação).
+
+O banco é armazenado no arquivo `students.db` na raiz do projeto. Na primeira execução, o arquivo é criado automaticamente com 3 estudantes de exemplo. Nas execuções seguintes, os dados persistidos em disco são carregados.
+
+```js
+app.get('/students', (req, res) => {
+  const result = db.exec('SELECT * FROM students')
+  if (result.length === 0) return res.json([])
+
+  const { columns, values } = result[0]
+  const students = values.map(row =>
+    Object.fromEntries(columns.map((col, i) => [col, row[i]]))
+  )
+  res.json(students)
+})
+```
+
+---
+
+### Missão 2 ✅
 
 Crie um endpoint para salvar novos estudantes no banco de dados.
 
-Você pode definir a estrutura da rota e a forma de persistência da maneira que considerar mais adequada.
+**O que foi feito:**
 
-### Missão 3
+Foi criado o endpoint `POST /students` que recebe `name` e `course` no body da requisição e insere o novo estudante no banco SQLite. Após a inserção, os dados são salvos no arquivo `students.db` para persistir entre reinicializações do servidor.
+
+A rota inclui validação básica: retorna erro `400` se `name` ou `course` estiverem ausentes. Em caso de sucesso, retorna o estudante criado com status `201`.
+
+```js
+app.post('/students', (req, res) => {
+  const { name, course } = req.body
+
+  if (!name || !course) {
+    return res.status(400).json({ error: 'Os campos "name" e "course" são obrigatórios.' })
+  }
+
+  db.run('INSERT INTO students (name, course) VALUES (?, ?)', [name, course])
+  saveDb()
+
+  const result = db.exec('SELECT * FROM students ORDER BY id DESC LIMIT 1')
+  const { columns, values } = result[0]
+  const newStudent = Object.fromEntries(columns.map((col, i) => [col, values[0][i]]))
+
+  res.status(201).json(newStudent)
+})
+```
+
+---
+
+### Missão 3 ✅
 
 Crie uma aplicação frontend para consumir esta API e listar os estudantes em uma tabela.
 
-O principal objetivo desta missão é exibir os dados da API em tela.
+**O que foi feito:**
+
+Foi criado um frontend em HTML, CSS e JavaScript puro (sem framework), no arquivo `index.html`. Para abrir, basta dar duplo clique no arquivo com o servidor da API rodando.
+
+Funcionalidades:
+- Tabela que lista todos os estudantes consumindo o `GET /students`
+- Formulário para adicionar novos estudantes via `POST /students`
+- Feedback visual com loading, animações e mensagens de sucesso/erro
+- Mensagem de aviso caso a API não esteja acessível
+
+O `cors` foi adicionado à API para permitir que o frontend, rodando em um endereço diferente, consiga fazer requisições sem bloqueio do navegador.
 
 ## Orientações para a Missão 3
 
-O frontend deve ser criado em um projeto novo e separado deste projeto da API.
+O frontend foi criado como um arquivo `index.html` separado da pasta da API.
 
-Durante o desenvolvimento, você terá dois projetos rodando localmente: a API e o frontend.
+Para rodar os dois ao mesmo tempo:
+1. Inicie a API com `node app.js`
+2. Abra o arquivo `index.html` no navegador
 
-O frontend deverá consumir os dados disponibilizados por esta API.
+O frontend consome os dados da API em `http://localhost:3009`.
 
-Antes de desenvolver o frontend, confirme que a API está rodando e que a rota `GET /students` funciona corretamente.
-
-Se o frontend não conseguir consumir a API no navegador, verifique se existe alguma configuração necessária para permitir essa comunicação local entre os dois projetos.
-
-Como recomendação, você pode criar o frontend com Next.js e utilizar a biblioteca de UI `shadcn/ui`, pois essa é uma estrutura que usamos na empresa.
-
-Para a listagem, a recomendação é usar o componente `data-table` do `shadcn/ui`.
-
-Documentação de referência:
-
-- Next.js Getting Started: https://nextjs.org/docs/app/getting-started/installation
-- shadcn/ui: https://ui.shadcn.com/
-- shadcn/ui Data Table: https://ui.shadcn.com/docs/components/radix/data-table#basic-table
-
-Essa estrutura é apenas uma recomendação.
-
-O frontend também pode ser feito de outra forma, com a tecnologia de sua preferência.
+---
 
 ## Importante
 
